@@ -15,7 +15,7 @@ load("./data/flow_data.mat")
 % Perform envelope detection to convert RF data to pressure field
 % Hilbert's Transform - absolute value of complex hilbert's gives envelope
 % High-Quality data
-env = abs(hilbert(rf_bmode));
+envHigh = abs(hilbert(rf_bmode));
 % Low-Quality data per steering angle
 envLow_n12 = abs(hilbert(rf(:,:,1,1)));
 envLow_0 = abs(hilbert(rf(:,:,1,2)));
@@ -26,7 +26,7 @@ envLow_12 = abs(hilbert(rf(:,:,1,3)));
 % in the image. Provide a colorbar.
 figure
 hold on 
-h = surf(x,z,20*log10(env/max(env(:))));
+h = surf(x,z,20*log10(envHigh/max(envHigh(:))));
 set(h,'LineStyle','none')
 title("High Quality B-mode")
 xlabel("X Position [m]")
@@ -85,18 +85,27 @@ clim([-60 0])
 hold off
 
 %% B-Mode Movie
+% Perform envelope detection to convert RF data to pressure field
+% Hilbert's Transform - absolute value of complex hilbert's gives envelope
+env = abs(hilbert(rf));
+% Define number of frames for animation
 %loops = size(rf,3); % Get number of timestamps within rf
 loops = 10;
 angleInd = 3;
-F(loops) = struct('cdata',[],'colormap',[]);
-for j = 1:loops
+% Create struct to store frames for animation
+frames(loops) = struct('cdata',[],'colormap',[]);
+% Call plotDiscreteFlux.m for every discrete energy level indicated in the
+% variable energyLevels. 29 plots are produced from this. This function
+% takes in the user-defined energyLevels vector and the data loaded in from
+% the Input Parameters section from electron_spectrum_fromfitfunction.mat.
+for i = 1:loops
+    env_i = env(:,:,i,angleInd);
     figure
     hold on 
-    %h = surf(x,z,20*log10(rf_bmode/max(rf_bmode(:))));
-    h = surf(x,z,rf(:,:,j,angleInd));
+    h = surf(x,z,20*log10(env_i/max(env_i(:))));
+    %h = surf(x,z,env(:,:,i,angleInd));
     set(h,'LineStyle','none')
-    %title("Log-Compressed Phantom Image")
-    title("Averaged Phantom Image")
+    title("Flow over Time")
     xlabel("X Position [m]")
     ylabel("Z Position [m]")
     colormap(gray)
@@ -104,17 +113,35 @@ for j = 1:loops
     ylim([min(z),max(z)])
     xlim([min(x),max(x)])
     set(gca, 'YDir','reverse')
-    %clim([-60 0])
-    axis tight manual
-    ax = gca;
-    ax.NextPlot = 'replaceChildren';
+    clim([-60 0])
     hold off
-    drawnow
-    F(j) = getframe(gcf);
+    frames(i) = getframe(gcf);
 end
-% Playback the movie two times.
-fig = figure;
-movie(fig,F,2)
+% Create animation figure with relevant name and make figure fullscreen
+figure('Name', 'Flow Over Time: Animation','units','normalized','outerposition',[0 0.006 1 1])
+% Switch hold to on to add helpful attributes to the plot
+hold on
+% Play animation twice at 3 frames per second
+% Movie syntax: movie(gcf,[variable name],[number times to play], [fps])
+movie(gcf,frames,2,3);
+% Switch hold to off
+hold off
+
+% To save the animation, open an object under a relevant name
+writerObj = VideoWriter('DopplerAnimation','MPEG-4');
+% Set the framerate to 2 fps
+writerObj.FrameRate = 2;
+% Open the video writer
+open(writerObj);
+% Write the saved frames to the video
+for i=1:length(frames)
+    % Convert the image to a frame
+    frame = frames(i) ;    
+    % Write the frame for the video
+    writeVideo(writerObj, frame);
+end
+% Close the writer object
+close(writerObj);
 
 %% Baseband Demodulation
 
