@@ -94,16 +94,11 @@ loops = 10;
 angleInd = 3;
 % Create struct to store frames for animation
 frames(loops) = struct('cdata',[],'colormap',[]);
-% Call plotDiscreteFlux.m for every discrete energy level indicated in the
-% variable energyLevels. 29 plots are produced from this. This function
-% takes in the user-defined energyLevels vector and the data loaded in from
-% the Input Parameters section from electron_spectrum_fromfitfunction.mat.
 for i = 1:loops
     env_i = env(:,:,i,angleInd);
     figure
     hold on 
     h = surf(x,z,20*log10(env_i/max(env_i(:))));
-    %h = surf(x,z,env(:,:,i,angleInd));
     set(h,'LineStyle','none')
     title("Flow over Time")
     xlabel("X Position [m]")
@@ -115,15 +110,17 @@ for i = 1:loops
     set(gca, 'YDir','reverse')
     clim([-60 0])
     hold off
+    %drawnow
     frames(i) = getframe(gcf);
 end
 % Create animation figure with relevant name and make figure fullscreen
-figure('Name', 'Flow Over Time: Animation','units','normalized','outerposition',[0 0.006 1 1])
+%figure('Name', 'Flow Over Time: Animation','units','normalized','outerposition',[0 0.006 1 1])
+figure('Name','Animation')
 % Switch hold to on to add helpful attributes to the plot
 hold on
 % Play animation twice at 3 frames per second
 % Movie syntax: movie(gcf,[variable name],[number times to play], [fps])
-movie(gcf,frames,2,3);
+movie(gcf,frames,2,1);
 % Switch hold to off
 hold off
 
@@ -137,6 +134,7 @@ open(writerObj);
 for i=1:length(frames)
     % Convert the image to a frame
     frame = frames(i) ;    
+    drawnow
     % Write the frame for the video
     writeVideo(writerObj, frame);
 end
