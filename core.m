@@ -11,21 +11,69 @@ clear;clc;close all
 %% Data Read
 load("./data/flow_data.mat")
 
-%% Display B-Mode Image
+%% Display B-Mode Images
 % Perform envelope detection to convert RF data to pressure field
 % Hilbert's Transform - absolute value of complex hilbert's gives envelope
+% High-Quality data
 env = abs(hilbert(rf_bmode));
+% Low-Quality data per steering angle
+envLow_n12 = abs(hilbert(rf(:,:,1,1)));
+envLow_0 = abs(hilbert(rf(:,:,1,2)));
+envLow_12 = abs(hilbert(rf(:,:,1,3)));
 
 % Display the log-compressed image using proper axes (with labels) and 
 % proportions with a 60 dB dynamic range, normalized to the brightest point
 % in the image. Provide a colorbar.
 figure
 hold on 
-% Issue here - need to log compress, but can't because rf_bmode has negs
-% This causes imaginaries once within log10()
 h = surf(x,z,20*log10(env/max(env(:))));
 set(h,'LineStyle','none')
-title("Log-Compressed Phantom Image")
+title("High Quality B-mode")
+xlabel("X Position [m]")
+ylabel("Z Position [m]")
+colormap(gray)
+colorbar
+ylim([min(z),max(z)])
+xlim([min(x),max(x)])
+set(gca, 'YDir','reverse')
+clim([-60 0])
+hold off
+
+figure
+hold on 
+h = surf(x,z,20*log10(envLow_n12/max(envLow_n12(:))));
+set(h,'LineStyle','none')
+title("Low Quality B-mode: -12deg Steering Angle")
+xlabel("X Position [m]")
+ylabel("Z Position [m]")
+colormap(gray)
+colorbar
+ylim([min(z),max(z)])
+xlim([min(x),max(x)])
+set(gca, 'YDir','reverse')
+clim([-60 0])
+hold off
+
+figure
+hold on 
+h = surf(x,z,20*log10(envLow_0/max(envLow_0(:))));
+set(h,'LineStyle','none')
+title("Low Quality B-mode: -0deg Steering Angle")
+xlabel("X Position [m]")
+ylabel("Z Position [m]")
+colormap(gray)
+colorbar
+ylim([min(z),max(z)])
+xlim([min(x),max(x)])
+set(gca, 'YDir','reverse')
+clim([-60 0])
+hold off
+
+figure
+hold on 
+h = surf(x,z,20*log10(envLow_12/max(envLow_12(:))));
+set(h,'LineStyle','none')
+title("Low Quality B-mode: 12deg Steering Angle")
 xlabel("X Position [m]")
 ylabel("Z Position [m]")
 colormap(gray)
