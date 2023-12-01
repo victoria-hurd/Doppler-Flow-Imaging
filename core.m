@@ -157,7 +157,8 @@ rf_avg = mean(rf_angle,3);
 
 % Perform Hilbert Transform to convert RF to analytical signal
 % https://www.mathworks.com/help/signal/ug/envelope-extraction-using-the-analytic-signal.html
-sig_demod = abs(hilbert(rf_avg));
+sig_demod = hilbert(rf_avg);
+sig_demodabs = abs(sig_demod);
 
 % Prep for FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
@@ -170,7 +171,7 @@ t = (0:L-1)*T; % time vector
 
 % Average laterally            
 sig_before = mean(rf_avg,2);
-sig_after = mean(sig_demod,2);
+sig_after = mean(sig_demodabs,2);
 
 % Perform baseband shifting - multiply signal by complex exponential to 
 % shift towards f0
@@ -239,4 +240,23 @@ d = designfilt('highpassfir', ...       % Response type
 matFinal = permute(mat,[3 2 1]); % lateral, axial, time
 
 %% Color Flow Doppler
+M = 5;
+N = 50; % change this if we remove frames in wall filter step
+
+I = real(sig_demod);
+Q = image(sig_demod);
+
+num = 0;
+denom = 0;
+% I'm confused by the bounds given in the project document. 
+% We're told to sum from element n=-1 which doesn't exist?
+for i = 1:M
+    for j=1:N
+        num = 1; % Change
+        denom = 1; % Change
+    end
+end
+
+% This gives a single value?
+v = (-c*prf/(4*pi*f0))*atan2(num/denom);
 
