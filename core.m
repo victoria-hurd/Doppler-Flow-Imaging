@@ -21,12 +21,19 @@ envLow_n12 = abs(hilbert(rf(:,:,1,1)));
 envLow_0 = abs(hilbert(rf(:,:,1,2)));
 envLow_12 = abs(hilbert(rf(:,:,1,3)));
 
+% Check single high quality axial beam envelope to verify methods
+figure
+hold on
+plot(envHigh(:,1))
+plot(rf_bmode(:,1))
+hold off
+
 % Display the log-compressed image using proper axes (with labels) and 
-% proportions with a 60 dB dynamic range, normalized to the brightest point
+% proportions with a 60 dB dynamic range, normalized to the mean point
 % in the image. Provide a colorbar.
 figure
 hold on 
-h = surf(x,z,20*log10(envHigh/max(envHigh(:))));
+h = surf(x,z,20*log10(envHigh/mean(envHigh(:))));
 set(h,'LineStyle','none')
 title("High Quality B-mode")
 xlabel("X Position [m]")
@@ -41,7 +48,7 @@ hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_n12/max(envLow_n12(:))));
+h = surf(x,z,20*log10(envLow_n12/mean(envLow_n12(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: -12deg Steering Angle")
 xlabel("X Position [m]")
@@ -56,7 +63,7 @@ hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_0/max(envLow_0(:))));
+h = surf(x,z,20*log10(envLow_0/mean(envLow_0(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: -0deg Steering Angle")
 xlabel("X Position [m]")
@@ -71,7 +78,7 @@ hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_12/max(envLow_12(:))));
+h = surf(x,z,20*log10(envLow_12/mean(envLow_12(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: 12deg Steering Angle")
 xlabel("X Position [m]")
@@ -98,7 +105,7 @@ for i = 1:loops
     env_i = env(:,:,i,angleInd);
     figure
     hold on 
-    h = surf(x,z,20*log10(env_i/max(env_i(:))));
+    h = surf(x,z,20*log10(env_i/mean(env_i(:))));
     set(h,'LineStyle','none')
     title("Flow over Time")
     xlabel("X Position [m]")
@@ -142,6 +149,61 @@ end
 close(writerObj);
 
 %% Baseband Demodulation
+% Separate out the angle of interest - makes 4D data into 3D data
+rf_angle = rf(:,:,:,3); % 12 deg angle only for now
+
+% Time averaging - time is dimension 3 - average to make into 2D data
+rf_avg = mean(rf_angle,3);
+
+% Perform Hilbert Transform to convert RF to analytical signal
+% https://www.mathworks.com/help/signal/ug/envelope-extraction-using-the-analytic-signal.html
+sig_demod = abs(hilbert(rf_avg));
+
+% Prep for FFT
+% https://www.mathworks.com/help/matlab/ref/fft.html
+%Fs = prf; % let prf = sample freq?
+Fs = 2*f0;
+T = 1/Fs;
+[M, ~, ~, ~] = size(rf);
+L = M; % number of rows - represents signal length
+t = (0:L-1)*T; % time vector
+
+% Average laterally            
+sig_before = mean(rf_avg,2);
+sig_after = mean(sig_demod,2);
+
+% Perform baseband shifting - multiply signal by complex exponential to 
+% shift towards f0
+y = fftshift(sig_after,f0);
+
+% Time distance conversion?
+
+
+% Plot results
+figure
+hold on
+title('Baseband Demodulation Results')
+xlabel('Frequency [Hz]')
+ylabel('Amplitude?')
+grid minor
+plot(sig_before)
+plot(sig_after)
+legend('Signal Before Demod','Signal After Demod')
+hold off
+
+% Power spectrum results
+figure
+hold on
+title('Power Spectra')
+xlabel('Frequency [Hz]')
+ylabel('Amplitude?')
+grid minor
+plot(Fs/L*(0:L-1),abs(fft(sig_before)))
+plot(Fs/L*(0:L-1),abs(fft(y)))
+xline(f0)
+xlim([min(Fs/L*(0:L-1)) max(Fs/L*(0:L-1))])
+legend('Signal Before Demod','Signal After Demod','Center Frequency')
+hold off
 
 %% Wall Filter
 
