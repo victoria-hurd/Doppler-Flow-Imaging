@@ -1,6 +1,6 @@
 % AUTHOR: Victoria Hurd
 % DATE CREATED: 11/28/2023
-% DATE LAST MODIFIED: 11/30/2023
+% DATE LAST MODIFIED: 12/1/2023
 % PROJECT: MCEN 5127 Final Project
 % DESCRIPTION: Core code for MCEN 5127 Final Project. Eventually will be
 % run from wrapper.m as a function
@@ -206,6 +206,37 @@ legend('Signal Before Demod','Signal After Demod','Center Frequency')
 hold off
 
 %% Wall Filter
+% Should these analyses be done on envelope data or RF data?
+% Permute to make time dimension 1 instead of 3
+mat = permute(rf_angle,[3 2 1]); % time, axial, lateral
+% Cast as double
+mat = double(mat);
+% Find filter cutoffs
+% Time averaging - lateral is dimension 3 - average to make into 2D data
+rf_timeavg = mean(mat,3);
+% Time averaging - axial is dimension 2 - average to make into 1D data
+rf_timeavg = mean(rf_timeavg,2);
+
+% Average again to get time alone? Below is FFT of time data
+% Prep for FFT
+% https://www.mathworks.com/help/matlab/ref/fft.html
+Fs = prf; % let prf = sample freq?
+T = 1/Fs;
+[M, ~, ~, ~] = size(rf_timeavg);
+L = M; % number of rows - represents signal length
+t = (0:L-1)*T; % time vector
+plot(Fs/L*(0:L-1),abs(fft(rf_timeavg)))
+
+% Design filter
+% https://www.mathworks.com/help/signal/ref/designfilt.html
+d = designfilt('highpassfir', ...       % Response type
+       'StopbandFrequency',400, ...     % Frequency constraints
+       'PassbandFrequency',550, ...
+       'SampleRate',Fs);
+% Apply filter
+
+% Permute again to make time dimension 3 again
+matFinal = permute(mat,[3 2 1]); % lateral, axial, time
 
 %% Color Flow Doppler
 
