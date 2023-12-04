@@ -33,60 +33,60 @@ hold off
 % in the image. Provide a colorbar.
 figure
 hold on 
-h = surf(x,z,20*log10(envHigh/max(envHigh(:))));
+h = surf(x*1e3,z*1e3,20*log10(envHigh/max(envHigh(:))));
 set(h,'LineStyle','none')
 title("High Quality B-mode")
-xlabel("X Position [m]")
-ylabel("Z Position [m]")
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
 colormap(gray)
 colorbar
-ylim([min(z),max(z)])
-xlim([min(x),max(x)])
+ylim([min(z*1e3),max(z*1e3)])
+xlim([min(x*1e3),max(x*1e3)])
 set(gca, 'YDir','reverse')
 clim([-60 0])
 hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_n12/max(envLow_n12(:))));
+h = surf(x*1e3,z*1e3,20*log10(envLow_n12/max(envLow_n12(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: -12deg Steering Angle")
-xlabel("X Position [m]")
-ylabel("Z Position [m]")
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
 colormap(gray)
 colorbar
-ylim([min(z),max(z)])
-xlim([min(x),max(x)])
+ylim([min(z*1e3),max(z*1e3)])
+xlim([min(x*1e3),max(x*1e3)])
 set(gca, 'YDir','reverse')
 clim([-60 0])
 hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_0/max(envLow_0(:))));
+h = surf(x*1e3,z*1e3,20*log10(envLow_0/max(envLow_0(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: -0deg Steering Angle")
-xlabel("X Position [m]")
-ylabel("Z Position [m]")
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
 colormap(gray)
 colorbar
-ylim([min(z),max(z)])
-xlim([min(x),max(x)])
+ylim([min(z*1e3),max(z*1e3)])
+xlim([min(x*1e3),max(x*1e3)])
 set(gca, 'YDir','reverse')
 clim([-60 0])
 hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_12/max(envLow_12(:))));
+h = surf(x*1e3,z*1e3,20*log10(envLow_12/max(envLow_12(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: 12deg Steering Angle")
-xlabel("X Position [m]")
-ylabel("Z Position [m]")
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
 colormap(gray)
 colorbar
-ylim([min(z),max(z)])
-xlim([min(x),max(x)])
+ylim([min(z*1e3),max(z*1e3)])
+xlim([min(x*1e3),max(x*1e3)])
 set(gca, 'YDir','reverse')
 clim([-60 0])
 hold off
@@ -105,15 +105,15 @@ for i = 1:loops
     env_i = env(:,:,i,angleInd);
     figure
     hold on 
-    h = surf(x,z,20*log10(env_i/max(env_i(:))));
+    h = surf(x*1e3,z*1e3,20*log10(env_i/max(env_i(:))));
     set(h,'LineStyle','none')
     title("Flow over Time")
-    xlabel("X Position [m]")
-    ylabel("Z Position [m]")
+    xlabel("X Position [mm]")
+    ylabel("Z Position [mm]")
     colormap(gray)
     colorbar
-    ylim([min(z),max(z)])
-    xlim([min(x),max(x)])
+    ylim([min(z*1e3),max(z*1e3)])
+    xlim([min(x*1e3),max(x*1e3)])
     set(gca, 'YDir','reverse')
     clim([-60 0])
     hold off
