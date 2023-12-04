@@ -33,7 +33,7 @@ hold off
 % in the image. Provide a colorbar.
 figure
 hold on 
-h = surf(x,z,20*log10(envHigh/mean(envHigh(:))));
+h = surf(x,z,20*log10(envHigh/max(envHigh(:))));
 set(h,'LineStyle','none')
 title("High Quality B-mode")
 xlabel("X Position [m]")
@@ -48,7 +48,7 @@ hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_n12/mean(envLow_n12(:))));
+h = surf(x,z,20*log10(envLow_n12/max(envLow_n12(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: -12deg Steering Angle")
 xlabel("X Position [m]")
@@ -63,7 +63,7 @@ hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_0/mean(envLow_0(:))));
+h = surf(x,z,20*log10(envLow_0/max(envLow_0(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: -0deg Steering Angle")
 xlabel("X Position [m]")
@@ -78,7 +78,7 @@ hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_12/mean(envLow_12(:))));
+h = surf(x,z,20*log10(envLow_12/max(envLow_12(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: 12deg Steering Angle")
 xlabel("X Position [m]")
@@ -96,8 +96,8 @@ hold off
 % Hilbert's Transform - absolute value of complex hilbert's gives envelope
 env = abs(hilbert(rf));
 % Define number of frames for animation
-%loops = size(rf,3); % Get number of timestamps within rf
-loops = 10;
+loops = size(rf,3); % Get number of timestamps within rf
+%loops = 10;
 angleInd = 3;
 % Create struct to store frames for animation
 frames(loops) = struct('cdata',[],'colormap',[]);
@@ -105,7 +105,7 @@ for i = 1:loops
     env_i = env(:,:,i,angleInd);
     figure
     hold on 
-    h = surf(x,z,20*log10(env_i/mean(env_i(:))));
+    h = surf(x,z,20*log10(env_i/max(env_i(:))));
     set(h,'LineStyle','none')
     title("Flow over Time")
     xlabel("X Position [m]")
@@ -244,7 +244,7 @@ M = 5;
 N = 50; % change this if we remove frames in wall filter step
 
 I = real(sig_demod);
-Q = image(sig_demod);
+Q = imag(sig_demod);
 
 num = 0;
 denom = 0;
