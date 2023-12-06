@@ -198,31 +198,27 @@ legend('Real Data','Hilbert Transformed Data',...
 hold off
 
 %% Wall Filter
-% Should these analyses be done on envelope data or RF data?
+% Should these analyses be done on demodulated data or RF data?
 % Permute to make time dimension 1 instead of 3
-mat = permute(rf_angle,[3 2 1]); % time, axial, lateral
+mat = permute(yafter,[3 2 1]); % time, axial, lateral
 % Cast as double
 mat = double(mat);
-% Find filter cutoffs
-% Time averaging - lateral is dimension 3 - average to make into 2D data
-before_timeavg = mean(mat,3);
-% Time averaging - axial is dimension 2 - average to make into 1D data
-before_timeavg = mean(before_timeavg,2);
 
-% Average again to get time alone? Below is FFT of time data
-% Prep for FFT
+% Prep FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
-Fs = prf; % let prf = sample freq?
-FN = prf*2;
+Fs = prf; 
 T = 1/Fs;
-[M, ~, ~, ~] = size(before_timeavg);
+[M, ~, ~, ~] = size(mat);
 L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
-plot(Fs/L*(0:L-1),abs(fft(before_timeavg)))
+plot(Fs/L*(0:L-1),abs(fft(mat)))
 
 % Design filter
+
+
+%cutoffs = cutoffs/
 % https://www.mathworks.com/help/signal/ref/designfilt.html
-d = designfilt('highpassfir', ...       % Response type
+d = designfilt('lowpassfir', ...       % Response type
        'StopbandFrequency',400, ...     % Frequency constraints
        'PassbandFrequency',550, ...
        'SampleRate',Fs);
@@ -231,6 +227,9 @@ d = designfilt('highpassfir', ...       % Response type
 
 % Permute again to make time dimension 3 again
 matFinal = permute(mat,[3 2 1]); % lateral, axial, time
+
+% Plot results
+
 
 %% Color Flow Doppler
 M = 5;
