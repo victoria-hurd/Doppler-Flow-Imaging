@@ -152,58 +152,49 @@ close(writerObj);
 % Separate out the angle of interest - makes 4D data into 3D data
 rf_angle = rf(:,:,:,3); % 12 deg angle only for now
 
-% Time averaging - time is dimension 3 - average to make into 2D data
-rf_avg = mean(rf_angle,3);
-
 % Perform Hilbert Transform to convert RF to analytical signal
 % https://www.mathworks.com/help/signal/ug/envelope-extraction-using-the-analytic-signal.html
-sig_demod = hilbert(rf_avg);
-sig_demodabs = abs(sig_demod);
+env = hilbert(rf_angle);
 
 % Prep for FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
-%Fs = prf; % let prf = sample freq?
-Fs = 2*f0;
+Fs = 1/(mean(diff(z/c*2)));
 T = 1/Fs;
 [M, ~, ~, ~] = size(rf);
 L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
 
-% Average laterally            
-sig_before = mean(rf_avg,2);
-sig_after = mean(sig_demodabs,2);
-
 % Perform baseband shifting - multiply signal by complex exponential to 
-% shift towards f0
-y = fftshift(sig_after,f0);
+% shift towards f0?
+y = abs(fft(env));
+yafter = abs(fft(env.*exp(-1i*2*pi*f0*t')));
+ybefore = abs(fft(rf_angle));
 
-% Time distance conversion?
+% Time averaging - time is dimension 3 - average to make into 2D data
+y_timeavg = mean(y,3);
+after_timeavg = mean(yafter,3);
+before_timeavg = mean(ybefore,3);
 
-
-% Plot results
-figure
-hold on
-title('Baseband Demodulation Results')
-xlabel('Frequency [Hz]')
-ylabel('Amplitude?')
-grid minor
-plot(sig_before)
-plot(sig_after)
-legend('Signal Before Demod','Signal After Demod')
-hold off
+% Average laterally     
+sig_preshift = mean(y_timeavg,2);
+sig_before = mean(before_timeavg,2);
+sig_after = mean(after_timeavg,2);
 
 % Power spectrum results
 figure
 hold on
 title('Power Spectra')
 xlabel('Frequency [Hz]')
-ylabel('Amplitude?')
+ylabel('Magnitude')
 grid minor
-plot(Fs/L*(0:L-1),abs(fft(sig_before)))
-plot(Fs/L*(0:L-1),abs(fft(y)))
+plot(Fs/L*(0:L-1),sig_before)
+plot(Fs/L*(0:L-1),sig_preshift)
+plot(Fs/L*(0:L-1),sig_after)
 xline(f0)
 xlim([min(Fs/L*(0:L-1)) max(Fs/L*(0:L-1))])
-legend('Signal Before Demod','Signal After Demod','Center Frequency')
+legend('Real Data','Hilbert Transformed Data',...
+    'Hilbert Transformed Data After Baseband Shifting',...
+    'Known Center Frequency')
 hold off
 
 %% Wall Filter
@@ -214,19 +205,20 @@ mat = permute(rf_angle,[3 2 1]); % time, axial, lateral
 mat = double(mat);
 % Find filter cutoffs
 % Time averaging - lateral is dimension 3 - average to make into 2D data
-rf_timeavg = mean(mat,3);
+before_timeavg = mean(mat,3);
 % Time averaging - axial is dimension 2 - average to make into 1D data
-rf_timeavg = mean(rf_timeavg,2);
+before_timeavg = mean(before_timeavg,2);
 
 % Average again to get time alone? Below is FFT of time data
 % Prep for FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
 Fs = prf; % let prf = sample freq?
+FN = prf*2;
 T = 1/Fs;
-[M, ~, ~, ~] = size(rf_timeavg);
+[M, ~, ~, ~] = size(before_timeavg);
 L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
-plot(Fs/L*(0:L-1),abs(fft(rf_timeavg)))
+plot(Fs/L*(0:L-1),abs(fft(before_timeavg)))
 
 % Design filter
 % https://www.mathworks.com/help/signal/ref/designfilt.html
@@ -243,8 +235,8 @@ matFinal = permute(mat,[3 2 1]); % lateral, axial, time
 M = 5;
 N = 50; % change this if we remove frames in wall filter step
 
-I = real(sig_demod);
-Q = imag(sig_demod);
+I = real(env);
+Q = imag(env);
 
 num = 0;
 denom = 0;
