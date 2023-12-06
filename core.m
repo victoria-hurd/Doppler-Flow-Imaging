@@ -94,7 +94,7 @@ hold off
 %% B-Mode Movie
 % Perform envelope detection to convert RF data to pressure field
 % Hilbert's Transform - absolute value of complex hilbert's gives envelope
-env = abs(hilbert(rf));
+Hdata = abs(hilbert(rf));
 % Define number of frames for animation
 loops = size(rf,3); % Get number of timestamps within rf
 %loops = 10;
@@ -102,7 +102,7 @@ angleInd = 3;
 % Create struct to store frames for animation
 frames(loops) = struct('cdata',[],'colormap',[]);
 for i = 1:loops
-    env_i = env(:,:,i,angleInd);
+    env_i = Hdata(:,:,i,angleInd);
     figure
     hold on 
     h = surf(x*1e3,z*1e3,20*log10(env_i/max(env_i(:))));
@@ -154,7 +154,7 @@ rf_angle = rf(:,:,:,3); % 12 deg angle only for now
 
 % Perform Hilbert Transform to convert RF to analytical signal
 % https://www.mathworks.com/help/signal/ug/envelope-extraction-using-the-analytic-signal.html
-env = hilbert(rf_angle);
+Hdata = hilbert(rf_angle);
 
 % Prep for FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
@@ -165,9 +165,9 @@ L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
 
 % Perform baseband shifting - multiply signal by complex exponential to 
-% shift towards f0?
-y = abs(fft(env));
-yafter = abs(fft(env.*exp(-1i*2*pi*f0*t')));
+% shift towards f0
+y = abs(fft(Hdata));
+yafter = abs(fft(Hdata.*exp(-1i*2*pi*f0*t')));
 ybefore = abs(fft(rf_angle));
 
 % Time averaging - time is dimension 3 - average to make into 2D data
@@ -227,6 +227,7 @@ d = designfilt('highpassfir', ...       % Response type
        'PassbandFrequency',550, ...
        'SampleRate',Fs);
 % Apply filter
+%filtfilt(); 
 
 % Permute again to make time dimension 3 again
 matFinal = permute(mat,[3 2 1]); % lateral, axial, time
@@ -235,8 +236,8 @@ matFinal = permute(mat,[3 2 1]); % lateral, axial, time
 M = 5;
 N = 50; % change this if we remove frames in wall filter step
 
-I = real(env);
-Q = imag(env);
+I = real(Hdata);
+Q = imag(Hdata);
 
 num = 0;
 denom = 0;
