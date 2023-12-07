@@ -211,25 +211,49 @@ T = 1/Fs;
 [M, ~, ~, ~] = size(mat);
 L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
-plot(Fs/L*(0:L-1),abs(fft(mat)))
+
+% Define Nyquist 
+Fn = Fs/2;
 
 % Design filter
+% from Starstrider on Matlab Answers
+% https://www.mathworks.com/matlabcentral/answers/412443-butterworth-filtfilt-and-fft-ifft-problem
+fhc = 7e6/Fn;
+flc = 3e6/Fn;
+Wn=[flc fhc];
+n = 4;
+[b,a] = butter(n,Wn,'bandpass');
 
-
-%cutoffs = cutoffs/
-% https://www.mathworks.com/help/signal/ref/designfilt.html
-d = designfilt('lowpassfir', ...       % Response type
-       'StopbandFrequency',400, ...     % Frequency constraints
-       'PassbandFrequency',550, ...
-       'SampleRate',Fs);
 % Apply filter
-%filtfilt(); 
+matFiltered = filtfilt(b, a, mat);
 
 % Permute again to make time dimension 3 again
-matFinal = permute(mat,[3 2 1]); % lateral, axial, time
+matFinal = permute(matFiltered,[3 2 1]); % lateral, axial, time
 
-% Plot results
+% Perform ffts on filtered and unfiltered
+yfiltered = abs(fft(matFinal));
+yunfiltered = abs(fft(y));
 
+% Time averaging - time is dimension 3 - average to make into 2D data
+filtered_timeavg = mean(ypreshift,3);
+unfiltered_timeavg = mean(y,3);
+
+% Average laterally  
+sig_filtered = mean(filtered_timeavg,2);
+sig_unfiltered = mean(unfiltered_timeavg,2);
+
+% Plot spectra results
+figure
+hold on 
+grid minor
+plot(sig_unfiltered)
+plot(sig_filtered)
+legend('Unfiltered Signal','Filtered Signal')
+hold off
+
+% Plot frequency response
+% https://www.mathworks.com/help/signal/ref/freqz.html
+%trapz();
 
 %% Color Flow Doppler
 M = 5;
