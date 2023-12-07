@@ -166,18 +166,18 @@ t = (0:L-1)*T; % time vector
 
 % Perform baseband shifting - multiply signal by complex exponential to 
 % shift towards f0
-y = abs(fft(Hdata));
-yafter = abs(fft(Hdata.*exp(-1i*2*pi*f0*t')));
 ybefore = abs(fft(rf_angle));
+ypreshift = abs(fft(Hdata));
+y = abs(fft(Hdata.*exp(-1i*2*pi*f0*t')));
 
 % Time averaging - time is dimension 3 - average to make into 2D data
-y_timeavg = mean(y,3);
-after_timeavg = mean(yafter,3);
 before_timeavg = mean(ybefore,3);
+preshift_timeavg = mean(ypreshift,3);
+after_timeavg = mean(y,3);
 
-% Average laterally     
-sig_preshift = mean(y_timeavg,2);
+% Average laterally  
 sig_before = mean(before_timeavg,2);
+sig_preshift = mean(preshift_timeavg,2);
 sig_after = mean(after_timeavg,2);
 
 % Power spectrum results
@@ -198,9 +198,9 @@ legend('Real Data','Hilbert Transformed Data',...
 hold off
 
 %% Wall Filter
-% Should these analyses be done on demodulated data or RF data?
+% These analyses should be done of demodulated & baseband shifted data (y)
 % Permute to make time dimension 1 instead of 3
-mat = permute(yafter,[3 2 1]); % time, axial, lateral
+mat = permute(y,[3 2 1]); % time, axial, lateral
 % Cast as double
 mat = double(mat);
 
