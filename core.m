@@ -163,6 +163,7 @@ T = 1/Fs;
 [M, ~, ~, ~] = size(rf);
 L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
+f = Fs/L*(0:(L/2)); % one-sided frequency vector
 
 % Perform baseband shifting - multiply signal by complex exponential to 
 % shift towards f0
@@ -183,15 +184,15 @@ sig_after = mean(after_timeavg,2);
 % Power spectrum results
 figure
 hold on
-title('Power Spectra')
+title('Single-Sided Power Spectra')
 xlabel('Frequency [Hz]')
 ylabel('Magnitude')
 grid minor
-plot(Fs/L*(0:L-1),sig_before)
-plot(Fs/L*(0:L-1),sig_preshift)
-plot(Fs/L*(0:L-1),sig_after)
+plot(f,sig_before(1:L/2+1))
+plot(f,sig_preshift(1:L/2+1))
+plot(f,sig_after(1:L/2+1))
 xline(f0)
-xlim([min(Fs/L*(0:L-1)) max(Fs/L*(0:L-1))])
+xlim([min(f) max(f)])
 legend('Real Data','Hilbert Transformed Data',...
     'Hilbert Transformed Data After Baseband Shifting',...
     'Known Center Frequency')
