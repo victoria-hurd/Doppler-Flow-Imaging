@@ -1,15 +1,15 @@
 % AUTHOR: Victoria Hurd
 % DATE CREATED: 11/28/2023
-% DATE LAST MODIFIED: 12/1/2023
+% DATE LAST MODIFIED: 12/6/2023
 % PROJECT: MCEN 5127 Final Project
 % DESCRIPTION: Core code for MCEN 5127 Final Project. Eventually will be
 % run from wrapper.m as a function
 
 %% Housekeeping
-clear;clc;close all
+%clear;clc;close all
 
 %% Data Read
-load("./data/flow_data.mat")
+%load("./data/flow_data.mat")
 
 %% Display B-Mode Images
 % Perform envelope detection to convert RF data to pressure field
@@ -33,60 +33,60 @@ hold off
 % in the image. Provide a colorbar.
 figure
 hold on 
-h = surf(x,z,20*log10(envHigh/max(envHigh(:))));
+h = surf(x*1e3,z*1e3,20*log10(envHigh/max(envHigh(:))));
 set(h,'LineStyle','none')
 title("High Quality B-mode")
-xlabel("X Position [m]")
-ylabel("Z Position [m]")
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
 colormap(gray)
 colorbar
-ylim([min(z),max(z)])
-xlim([min(x),max(x)])
+ylim([min(z*1e3),max(z*1e3)])
+xlim([min(x*1e3),max(x*1e3)])
 set(gca, 'YDir','reverse')
 clim([-60 0])
 hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_n12/max(envLow_n12(:))));
+h = surf(x*1e3,z*1e3,20*log10(envLow_n12/max(envLow_n12(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: -12deg Steering Angle")
-xlabel("X Position [m]")
-ylabel("Z Position [m]")
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
 colormap(gray)
 colorbar
-ylim([min(z),max(z)])
-xlim([min(x),max(x)])
+ylim([min(z*1e3),max(z*1e3)])
+xlim([min(x*1e3),max(x*1e3)])
 set(gca, 'YDir','reverse')
 clim([-60 0])
 hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_0/max(envLow_0(:))));
+h = surf(x*1e3,z*1e3,20*log10(envLow_0/max(envLow_0(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: -0deg Steering Angle")
-xlabel("X Position [m]")
-ylabel("Z Position [m]")
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
 colormap(gray)
 colorbar
-ylim([min(z),max(z)])
-xlim([min(x),max(x)])
+ylim([min(z*1e3),max(z*1e3)])
+xlim([min(x*1e3),max(x*1e3)])
 set(gca, 'YDir','reverse')
 clim([-60 0])
 hold off
 
 figure
 hold on 
-h = surf(x,z,20*log10(envLow_12/max(envLow_12(:))));
+h = surf(x*1e3,z*1e3,20*log10(envLow_12/max(envLow_12(:))));
 set(h,'LineStyle','none')
 title("Low Quality B-mode: 12deg Steering Angle")
-xlabel("X Position [m]")
-ylabel("Z Position [m]")
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
 colormap(gray)
 colorbar
-ylim([min(z),max(z)])
-xlim([min(x),max(x)])
+ylim([min(z*1e3),max(z*1e3)])
+xlim([min(x*1e3),max(x*1e3)])
 set(gca, 'YDir','reverse')
 clim([-60 0])
 hold off
@@ -94,7 +94,7 @@ hold off
 %% B-Mode Movie
 % Perform envelope detection to convert RF data to pressure field
 % Hilbert's Transform - absolute value of complex hilbert's gives envelope
-env = abs(hilbert(rf));
+Hdata = abs(hilbert(rf));
 % Define number of frames for animation
 loops = size(rf,3); % Get number of timestamps within rf
 %loops = 10;
@@ -102,18 +102,18 @@ angleInd = 3;
 % Create struct to store frames for animation
 frames(loops) = struct('cdata',[],'colormap',[]);
 for i = 1:loops
-    env_i = env(:,:,i,angleInd);
+    env_i = Hdata(:,:,i,angleInd);
     figure
     hold on 
-    h = surf(x,z,20*log10(env_i/max(env_i(:))));
+    h = surf(x*1e3,z*1e3,20*log10(env_i/max(env_i(:))));
     set(h,'LineStyle','none')
     title("Flow over Time")
-    xlabel("X Position [m]")
-    ylabel("Z Position [m]")
+    xlabel("X Position [mm]")
+    ylabel("Z Position [mm]")
     colormap(gray)
     colorbar
-    ylim([min(z),max(z)])
-    xlim([min(x),max(x)])
+    ylim([min(z*1e3),max(z*1e3)])
+    xlim([min(x*1e3),max(x*1e3)])
     set(gca, 'YDir','reverse')
     clim([-60 0])
     hold off
@@ -152,99 +152,102 @@ close(writerObj);
 % Separate out the angle of interest - makes 4D data into 3D data
 rf_angle = rf(:,:,:,3); % 12 deg angle only for now
 
-% Time averaging - time is dimension 3 - average to make into 2D data
-rf_avg = mean(rf_angle,3);
-
 % Perform Hilbert Transform to convert RF to analytical signal
 % https://www.mathworks.com/help/signal/ug/envelope-extraction-using-the-analytic-signal.html
-sig_demod = hilbert(rf_avg);
-sig_demodabs = abs(sig_demod);
+Hdata = hilbert(rf_angle);
 
 % Prep for FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
-%Fs = prf; % let prf = sample freq?
-Fs = 2*f0;
+Fs = 1/(mean(diff(z/c*2)));
 T = 1/Fs;
 [M, ~, ~, ~] = size(rf);
 L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
 
-% Average laterally            
-sig_before = mean(rf_avg,2);
-sig_after = mean(sig_demodabs,2);
-
 % Perform baseband shifting - multiply signal by complex exponential to 
 % shift towards f0
-y = fftshift(sig_after,f0);
+y = abs(fft(Hdata));
+yafter = abs(fft(Hdata.*exp(-1i*2*pi*f0*t')));
+ybefore = abs(fft(rf_angle));
 
-% Time distance conversion?
+% Time averaging - time is dimension 3 - average to make into 2D data
+y_timeavg = mean(y,3);
+after_timeavg = mean(yafter,3);
+before_timeavg = mean(ybefore,3);
 
-
-% Plot results
-figure
-hold on
-title('Baseband Demodulation Results')
-xlabel('Frequency [Hz]')
-ylabel('Amplitude?')
-grid minor
-plot(sig_before)
-plot(sig_after)
-legend('Signal Before Demod','Signal After Demod')
-hold off
+% Average laterally     
+sig_preshift = mean(y_timeavg,2);
+sig_before = mean(before_timeavg,2);
+sig_after = mean(after_timeavg,2);
 
 % Power spectrum results
 figure
 hold on
 title('Power Spectra')
 xlabel('Frequency [Hz]')
-ylabel('Amplitude?')
+ylabel('Magnitude')
 grid minor
-plot(Fs/L*(0:L-1),abs(fft(sig_before)))
-plot(Fs/L*(0:L-1),abs(fft(y)))
+plot(Fs/L*(0:L-1),sig_before)
+plot(Fs/L*(0:L-1),sig_preshift)
+plot(Fs/L*(0:L-1),sig_after)
 xline(f0)
 xlim([min(Fs/L*(0:L-1)) max(Fs/L*(0:L-1))])
-legend('Signal Before Demod','Signal After Demod','Center Frequency')
+legend('Real Data','Hilbert Transformed Data',...
+    'Hilbert Transformed Data After Baseband Shifting',...
+    'Known Center Frequency')
 hold off
 
 %% Wall Filter
-% Should these analyses be done on envelope data or RF data?
+% Should these analyses be done on demodulated data or RF data?
 % Permute to make time dimension 1 instead of 3
-mat = permute(rf_angle,[3 2 1]); % time, axial, lateral
+mat = permute(yafter,[3 2 1]); % time, axial, lateral
 % Cast as double
 mat = double(mat);
-% Find filter cutoffs
-% Time averaging - lateral is dimension 3 - average to make into 2D data
-rf_timeavg = mean(mat,3);
-% Time averaging - axial is dimension 2 - average to make into 1D data
-rf_timeavg = mean(rf_timeavg,2);
 
-% Average again to get time alone? Below is FFT of time data
-% Prep for FFT
+d=designfilt('highpassfir', ...       % Response type
+       'StopbandFrequency',40, ...     % Frequency constraints
+       'PassbandFrequency',550, ...
+       'StopbandAttenuation',55, ...    % Magnitude constraints
+       'PassbandRipple',4, ...
+       'DesignMethod','kaiserwin', ...  % Design method
+       'ScalePassband',false, ...       % Design method options
+       'SampleRate', Fs)  ;             % Sample rate
+% Prep FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
-Fs = prf; % let prf = sample freq?
+Fs = prf; 
 T = 1/Fs;
-[M, ~, ~, ~] = size(rf_timeavg);
-L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
-plot(Fs/L*(0:L-1),abs(fft(rf_timeavg)))
+%plot(Fs/L*(0:L-1),abs(fft(mat)))
 
 % Design filter
-% https://www.mathworks.com/help/signal/ref/designfilt.html
-d = designfilt('highpassfir', ...       % Response type
-       'StopbandFrequency',400, ...     % Frequency constraints
-       'PassbandFrequency',550, ...
-       'SampleRate',Fs);
+
+cutoff= 45; % ideally 60-50 Hz
+
 % Apply filter
 
+% Hd_65Coeff = coeffs(Hd_65);
+% mat= filtfilt(Hd_65Coeff.Numerator, 1 ,mat);
+ 
+[b,a]= butter(15, (cutoff/(Fs/2)), "high"); % not showing artery
+mat= filtfilt(b,a,mat);
 % Permute again to make time dimension 3 again
 matFinal = permute(mat,[3 2 1]); % lateral, axial, time
+% Plot results
+figure
+
+imagesc(matFinal(:,:,25))
+%h = surf(matFinal(:,:,25));
+%set(h,'LineStyle','none')
+title("Wallll")
+
+
 
 %% Color Flow Doppler
 M = 5;
 N = 50; % change this if we remove frames in wall filter step
 
-I = real(sig_demod);
-Q = imag(sig_demod);
+I = real(Hdata);
+Q = imag(Hdata);
 
 num = 0;
 denom = 0;
@@ -259,4 +262,3 @@ end
 
 % This gives a single value?
 v = (-c*prf/(4*pi*f0))*atan2(num/denom);
-
