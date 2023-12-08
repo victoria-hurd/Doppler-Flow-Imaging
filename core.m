@@ -1,6 +1,6 @@
 % AUTHOR: Victoria Hurd
 % DATE CREATED: 11/28/2023
-% DATE LAST MODIFIED: 12/6/2023
+% DATE LAST MODIFIED: 12/7/2023
 % PROJECT: MCEN 5127 Final Project
 % DESCRIPTION: Core code for MCEN 5127 Final Project. Eventually will be
 % run from wrapper.m as a function
@@ -117,7 +117,6 @@ for i = 1:loops
     set(gca, 'YDir','reverse')
     clim([-60 0])
     hold off
-    %drawnow
     frames(i) = getframe(gcf);
 end
 % Create animation figure with relevant name and make figure fullscreen
@@ -201,56 +200,76 @@ hold off
 %% Wall Filter
 % These analyses should be done of demodulated & baseband shifted data (y)
 % Permute to make time dimension 1 instead of 3
-mat = permute(y,[3 2 1]); % time, axial, lateral
+Hmat = permute(Hdata,[3 2 1]); % time, axial, lateral
 % Cast as double
-mat = double(mat);
+Hmat = double(Hmat);
 
 % Prep FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
 Fs = prf; 
 T = 1/Fs;
-[M, ~, ~, ~] = size(mat);
+[M, ~, ~, ~] = size(Hmat);
 L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
+f = Fs/L*(0:(L/2)); % one-sided frequency vector
+
+% FFT
+y = abs(fft(Hmat.*exp(-1i*2*pi*f0*t')));
 
 % Define Nyquist 
 Fn = Fs/2;
 
+% Find cutoffs from time data
+% Lateral averaging - lateral is dimension 3
+mat_lateralavg = mean(y,3);
+% Average axially  
+mat_axialavg = mean(mat_lateralavg,2);
+% Plot
+figure
+hold on
+plot(f,mat_axialavg(1:L/2+1))
+xlim([min(f) max(f)])
+hold off
+
 % Design filter
 % from Starstrider on Matlab Answers
 % https://www.mathworks.com/matlabcentral/answers/412443-butterworth-filtfilt-and-fft-ifft-problem
-fhc = 7e6/Fn;
-flc = 3e6/Fn;
+fhc = 1500/Fn;
+flc = 720/Fn;
 Wn=[flc fhc];
 n = 4;
 [b,a] = butter(n,Wn,'bandpass');
 
 % Apply filter
-matFiltered = filtfilt(b, a, mat);
-
-% Permute again to make time dimension 3 again
-matFinal = permute(matFiltered,[3 2 1]); % lateral, axial, time
+matFiltered = filtfilt(b, a, y);
 
 % Perform ffts on filtered and unfiltered
-yfiltered = abs(fft(matFinal));
 yunfiltered = abs(fft(y));
 
-% Time averaging - time is dimension 3 - average to make into 2D data
-filtered_timeavg = mean(ypreshift,3);
-unfiltered_timeavg = mean(y,3);
+% Show effect of frequency spectrum cutoff
+% Lateral averaging
+filtered_lateralavg = mean(matFiltered,3);
+unfiltered_lateralavg = mean(yunfiltered,3);
 
-% Average laterally  
-sig_filtered = mean(filtered_timeavg,2);
-sig_unfiltered = mean(unfiltered_timeavg,2);
+% Average axial  
+sig_filtered = mean(filtered_lateralavg,2);
+sig_unfiltered = mean(unfiltered_lateralavg,2);
 
 % Plot spectra results
 figure
 hold on 
 grid minor
-plot(sig_unfiltered)
-plot(sig_filtered)
+plot(f,sig_unfiltered(1:L/2+1))
+plot(f,sig_filtered(1:L/2+1))
 legend('Unfiltered Signal','Filtered Signal')
 hold off
+
+% Permute again to make time dimension 3 again
+matFinal = permute(matFiltered,[3 2 1]); % lateral, axial, time
+
+% Displaying filtered B mode
+wallBMode = abs(ifft(matFinal));
+imagesc(wallBMode(:,:,25))
 
 % Plot frequency response
 % https://www.mathworks.com/help/signal/ref/freqz.html
@@ -260,8 +279,8 @@ hold off
 M = 5;
 N = 50; % change this if we remove frames in wall filter step
 
-I = real(Hdata);
-Q = imag(Hdata);
+I = real(y);
+Q = imag(y);
 
 num = 0;
 denom = 0;
@@ -275,5 +294,5 @@ for i = 1:M
 end
 
 % This gives a single value?
-v = (-c*prf/(4*pi*f0))*atan2(num/denom);
+v = (-c*prf/(4*pi*f0))*atan2(num,denom);
 
