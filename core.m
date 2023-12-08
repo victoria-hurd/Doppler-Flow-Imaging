@@ -94,59 +94,31 @@ hold off
 %% B-Mode Movie
 % Perform envelope detection to convert RF data to pressure field
 % Hilbert's Transform - absolute value of complex hilbert's gives envelope
-Hdata = abs(hilbert(rf));
+env = abs(hilbert(rf));
 % Define number of frames for animation
 loops = size(rf,3); % Get number of timestamps within rf
-%loops = 10;
 angleInd = 3;
-% Create struct to store frames for animation
-frames(loops) = struct('cdata',[],'colormap',[]);
+% Create video object
+v = VideoWriter("newfile",'MPEG-4');
+% Open object
+open(v)
+% Create movie
 for i = 1:loops
-    env_i = Hdata(:,:,i,angleInd);
+    env_i = env(:,:,i,angleInd);
+    env_i = 20*log10(env_i/max(env_i(:)));
     clf
-    hold on 
-    h = surf(x*1e3,z*1e3,20*log10(env_i/max(env_i(:))));
-    set(h,'LineStyle','none')
-    title("Flow over Time")
-    xlabel("X Position [mm]")
-    ylabel("Z Position [mm]")
+    imagesc(env_i)
     colormap(gray)
+    title("Flow over Time")
+    xlabel("X Position [m]")
+    ylabel("Z Position [m]")
     colorbar
-    ylim([min(z*1e3),max(z*1e3)])
-    xlim([min(x*1e3),max(x*1e3)])
-    set(gca, 'YDir','reverse')
-    clim([-60 0])
-    hold off
     drawnow
-    frames(i) = getframe(gcf);
+    frame = getframe(gcf);
+   writeVideo(v,frame)
 end
-% Create animation figure with relevant name and make figure fullscreen
-%figure('Name', 'Flow Over Time: Animation','units','normalized','outerposition',[0 0.006 1 1])
-figure('Name','Animation')
-% Switch hold to on to add helpful attributes to the plot
-hold on
-% Play animation twice at 3 frames per second
-% Movie syntax: movie(gcf,[variable name],[number times to play], [fps])
-movie(gcf,frames,2,1);
-% Switch hold to off
-hold off
-
-% To save the animation, open an object under a relevant name
-writerObj = VideoWriter('DopplerAnimation','MPEG-4');
-% Set the framerate to 2 fps
-writerObj.FrameRate = 2;
-% Open the video writer
-open(writerObj);
-% Write the saved frames to the video
-for i=1:length(frames)
-    % Convert the image to a frame
-    frame = frames(i) ;    
-    drawnow
-    % Write the frame for the video
-    writeVideo(writerObj, frame);
-end
-% Close the writer object
-close(writerObj);
+% close object
+close(v)
 
 %% Baseband Demodulation
 % Separate out the angle of interest - makes 4D data into 3D data
