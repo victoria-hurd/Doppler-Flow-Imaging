@@ -1,6 +1,6 @@
 % AUTHOR: Victoria Hurd
 % DATE CREATED: 11/28/2023
-% DATE LAST MODIFIED: 12/7/2023
+% DATE LAST MODIFIED: 12/8/2023
 % PROJECT: MCEN 5127 Final Project
 % DESCRIPTION: Core code for MCEN 5127 Final Project. Eventually will be
 % run from wrapper.m as a function
@@ -103,7 +103,7 @@ angleInd = 3;
 frames(loops) = struct('cdata',[],'colormap',[]);
 for i = 1:loops
     env_i = Hdata(:,:,i,angleInd);
-    figure
+    clf
     hold on 
     h = surf(x*1e3,z*1e3,20*log10(env_i/max(env_i(:))));
     set(h,'LineStyle','none')
@@ -117,6 +117,7 @@ for i = 1:loops
     set(gca, 'YDir','reverse')
     clim([-60 0])
     hold off
+    drawnow
     frames(i) = getframe(gcf);
 end
 % Create animation figure with relevant name and make figure fullscreen
@@ -168,12 +169,13 @@ f = Fs/L*(0:(L/2)); % one-sided frequency vector
 % shift towards f0
 ybefore = abs(fft(rf_angle));
 ypreshift = abs(fft(Hdata));
-y = abs(fft(Hdata.*exp(-1i*2*pi*f0*t')));
+y = Hdata.*exp(-1i*2*pi*f0*t');
+yFFT = abs(fft(Hdata.*exp(-1i*2*pi*f0*t')));
 
 % Time averaging - time is dimension 3 - average to make into 2D data
 before_timeavg = mean(ybefore,3);
 preshift_timeavg = mean(ypreshift,3);
-after_timeavg = mean(y,3);
+after_timeavg = mean(yFFT,3);
 
 % Average laterally  
 sig_before = mean(before_timeavg,2);
@@ -200,99 +202,121 @@ hold off
 %% Wall Filter
 % These analyses should be done of demodulated & baseband shifted data (y)
 % Permute to make time dimension 1 instead of 3
-Hmat = permute(Hdata,[3 2 1]); % time, axial, lateral
+mat = permute(y,[3 2 1]); % time, axial, lateral
 % Cast as double
-Hmat = double(Hmat);
+mat = double(mat);
 
 % Prep FFT
 % https://www.mathworks.com/help/matlab/ref/fft.html
 Fs = prf; 
 T = 1/Fs;
-[M, ~, ~, ~] = size(Hmat);
+[M, ~, ~, ~] = size(mat);
 L = M; % number of rows - represents signal length
 t = (0:L-1)*T; % time vector
 f = Fs/L*(0:(L/2)); % one-sided frequency vector
 
-% FFT
-y = abs(fft(Hmat.*exp(-1i*2*pi*f0*t')));
-
-% Define Nyquist 
-Fn = Fs/2;
+% FFT in Doppler Freq
+ffty = abs(fft(mat));
 
 % Find cutoffs from time data
 % Lateral averaging - lateral is dimension 3
-mat_lateralavg = mean(y,3);
+mat_lateralavg = mean(ffty,3);
 % Average axially  
 mat_axialavg = mean(mat_lateralavg,2);
 % Plot
 figure
 hold on
+grid minor
 plot(f,mat_axialavg(1:L/2+1))
 xlim([min(f) max(f)])
+xline(720)
+title('Single-Sided Frequency Spectrum')
+xlabel('Doppler Frequency (Hz)')
+ylabel('|FFT|')
 hold off
 
 % Design filter
-% from Starstrider on Matlab Answers
+% Define Nyquist 
+Fn = Fs/2;
 % https://www.mathworks.com/matlabcentral/answers/412443-butterworth-filtfilt-and-fft-ifft-problem
-fhc = 1500/Fn;
-flc = 720/Fn;
-Wn=[flc fhc];
+flc = 200/Fn;
 n = 4;
-[b,a] = butter(n,Wn,'bandpass');
+[b,a] = butter(n,flc,'high');
 
 % Apply filter
-matFiltered = filtfilt(b, a, y);
-
-% Perform ffts on filtered and unfiltered
-yunfiltered = abs(fft(y));
+matFiltered = filtfilt(b, a, mat);
 
 % Show effect of frequency spectrum cutoff
-% Lateral averaging
-filtered_lateralavg = mean(matFiltered,3);
-unfiltered_lateralavg = mean(yunfiltered,3);
-
-% Average axial  
-sig_filtered = mean(filtered_lateralavg,2);
-sig_unfiltered = mean(unfiltered_lateralavg,2);
+% Average over axial and lateral
+filteredSpectra = mean(abs(fft(matFiltered)),[2 3]);
+unfilteredSpectra = mean(ffty,[2 3]);
 
 % Plot spectra results
 figure
 hold on 
 grid minor
-plot(f,sig_unfiltered(1:L/2+1))
-plot(f,sig_filtered(1:L/2+1))
+plot(f,unfilteredSpectra(1:L/2+1))
+plot(f,filteredSpectra(1:L/2+1))
 legend('Unfiltered Signal','Filtered Signal')
+title('Filter Cutoff Effects')
+xlabel('Doppler Frequency (Hz)')
+ylabel('|FFT|')
 hold off
 
 % Permute again to make time dimension 3 again
 matFinal = permute(matFiltered,[3 2 1]); % lateral, axial, time
 
 % Displaying filtered B mode
-wallBMode = abs(ifft(matFinal));
+wallBMode = abs(matFinal);
+figure
 imagesc(wallBMode(:,:,25))
 
-% Plot frequency response
-% https://www.mathworks.com/help/signal/ref/freqz.html
-%trapz();
 
 %% Color Flow Doppler
 M = 5;
 N = 50; % change this if we remove frames in wall filter step
 
-I = real(y);
-Q = imag(y);
+% https://www.biomecardio.com/files/Color_Doppler.pdf
+% dim #1-2 = space; dim #3 = slow-time
+y1 = matFinal(:,:,1:end-1);
+y2 = matFinal(:,:,2:end); % lag-1 temporal shift
+%-- lag-1 I/Q auto-correlation
+R1 = sum(y1.*conj(y2),3);
+% R1 = y1.*conj(y2);
+%-- Doppler velocity (Vd)
+VN = c*prf/4/f0; % Nyquist velocity
+Vd = -VN*imag(log(R1))/pi;
+% Vd = -c*prf/(4*pi*f0)*atan(real(R1)); % Nyquist velocity
+
+figure
+imagesc(Vd(:,:)*1e2)
+colormap(cmap_cf)
+c = colorbar;
+c.Label.String = 'Flow Velocity (cm/s)';
+
+
+%% Color Flow Vicki's first attempt
+I = real(matFinal);
+Q = imag(matFinal);
 
 num = 0;
 denom = 0;
 % I'm confused by the bounds given in the project document. 
 % We're told to sum from element n=-1 which doesn't exist?
 for i = 1:M
-    for j=1:N
-        num = 1; % Change
-        denom = 1; % Change
+    for j=2:N
+        numnew = Q(:,i,j).*I(:,i,j-1)-I(:,i,j).*Q(:,i,j-1); 
+        denomnew = I(:,i,j).*I(:,i,j-1)+Q(:,i,j).*Q(:,i,j-1); 
+        num = num+numnew;
+        denom = denom+denomnew;
     end
 end
 
-% This gives a single value?
+% This gives a single vector? In project doc it gives scalar. What should
+% dimensions really be here? 800*300*50? Show flow over time?
 v = (-c*prf/(4*pi*f0))*atan2(num,denom);
+
+%% Power Doppler
+s_bb = 1;
+power = abs(matFinal*s_bb)^2;
 
