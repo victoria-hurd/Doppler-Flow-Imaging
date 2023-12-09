@@ -101,7 +101,7 @@ env = 20*log10(env/max(env(:)));
 % Define number of frames for animation
 loops = size(rf,3); % Get number of timestamps within rf
 % Create video object
-v = VideoWriter("newfile",'MPEG-4');
+v = VideoWriter("bModeMovie",'MPEG-4');
 % Open object
 open(v)
 % Create movie
@@ -115,6 +115,7 @@ for i = 1:loops
     ylabel("Z Position [m]")
     colorbar
     %clim([0 60]) Idk how to get them to all be the same range?
+    % clim([-60 0])
     drawnow
     frame = getframe(gcf);
    writeVideo(v,frame)
@@ -247,7 +248,7 @@ wallBMode = abs(matFinal);
 % Define number of frames for animation
 loops = size(wallBMode,3); % Get number of timestamps within rf
 % Create video object
-v = VideoWriter("newfile",'MPEG-4');
+v = VideoWriter("WallFilter",'MPEG-4');
 % Open object
 open(v)
 % Create movie
@@ -267,58 +268,20 @@ end
 close(v)
 
 %% Color Flow Doppler
-M = 5;
-N = 50; % change this if we remove frames in wall filter step
-
-% https://www.biomecardio.com/files/Color_Doppler.pdf
-% dim #1-2 = space; dim #3 = slow-time
-y1 = matFinal(:,:,1:end-1);
-y2 = matFinal(:,:,2:end); % lag-1 temporal shift
-%-- lag-1 I/Q auto-correlation
-R1 = sum(y1.*conj(y2),3);
-% R1 = y1.*conj(y2);
-%-- Doppler velocity (Vd)
-VN = c*prf/4/f0; % Nyquist velocity
-Vd = -VN*imag(log(R1))/pi;
-% Vd = -c*prf/(4*pi*f0)*atan(real(R1)); % Nyquist velocity
-
-figure
-imagesc(Vd(:,:)*1e2)
-colormap(cmap_cf)
-c = colorbar;
-
-%% Color Flow Vicki's first attempt
-I = real(matFinal);
-Q = imag(matFinal);
-
-num = 0;
-denom = 0;
-% I'm confused by the bounds given in the project document. 
-% We're told to sum from element n=-1 which doesn't exist?
-for i = 1:M
-    for j=2:N
-        numnew = Q(:,i,j).*I(:,i,j-1)-I(:,i,j).*Q(:,i,j-1); 
-        denomnew = I(:,i,j).*I(:,i,j-1)+Q(:,i,j).*Q(:,i,j-1); 
-        num = num+numnew;
-        denom = denom+denomnew;
-    end
-end
-
-% This gives a single vector? In project doc it gives scalar. What should
-% dimensions really be here? 800*300*50? Show flow over time?
-v = (c*prf/(4*pi*f0))*atan2(num,denom);
-
-%% Color Flow Vicki's second attempt
 % separate in phase and quadrature
 I = real(matFinal);
 Q = imag(matFinal);
 
 % Kasai's Calculations part 1 - arctan argument
-% ISSUE - these outputs are zero...
+% Preallocations
+num = zeros(size(I,1),size(I,2),size(I,3)-1);
+denom = zeros(size(I,1),size(I,2),size(I,3)-1);
+% Calculate number of frames
 nFrames = size(I,3);
-for i = 1:nFrames-1
-    num = Q(:,:,i).*I(:,:,i-1)-I(:,:,i).*Q(:,:,i-1); 
-    denom = I(:,:,i).*I(:,:,i-1)+Q(:,:,i).*Q(:,:,i-1); 
+for i = 2:nFrames
+    % ISSUE - these outputs are zero...
+    num(:,:,i-1) = Q(:,:,i).*I(:,:,i-1)-I(:,:,i).*Q(:,:,i-1); 
+    denom(:,:,i-1) = I(:,:,i).*I(:,:,i-1)+Q(:,:,i).*Q(:,:,i-1); 
 end
 % Kernel convolution
 kernel = ones(5,1,3);
@@ -326,9 +289,50 @@ numConv = convn(num,kernel,'same');
 denomConv = convn(denom,kernel,'same');
 
 %  Kasai's Calculations part 2
-v = (1*c*prf/(4*pi*f0))*atan2(numConv,denomConv);
+vD = (1*c*prf/(4*pi*f0))*atan2(numConv,denomConv);
+
+% Plotting single frame
+figure
+imagesc(vD(:,:,1))
+colormap(cmap_cf)
+cb = colorbar(); 
+ylabel(cb,'Flow Velocity [cm/s]','FontSize',14)
+
+% Doppler Flow Movie
+% Define number of frames for animation
+loops = size(vD,3); % Get number of timestamps within rf
+% Create video object
+v = VideoWriter("colorDoppler",'MPEG-4');
+% Open object
+open(v)
+% Create movie
+for i = 1:loops
+    clf
+    imagesc(vD(:,:,i)*1e2)
+    colormap(cmap_cf)
+    title("Doppler Flow")
+    xlabel("X Position [m]")
+    ylabel("Z Position [m]")
+    cb = colorbar(); 
+    ylabel(cb,'Flow Velocity [cm/s]','FontSize',14)
+    drawnow
+    frame = getframe(gcf);
+   writeVideo(v,frame)
+end
+% close object
+close(v)
 
 %% Power Doppler
-s_bb = 1;
-power = abs(matFinal*s_bb)^2;
-
+power = sum(abs(matFinal).^2,3);
+% Plotting single frame
+figure
+imagesc(x*1e3,z*1e3,power(:,:))
+colormap(cmap_pd)
+cb = colorbar(); 
+ylabel(cb,'units?','FontSize',14)
+xlabel("X Position [mm]")
+ylabel("Z Position [mm]")
+title('Power Doppler')
+colorbar
+% ylim([min(z*1e3),max(z*1e3)])
+% xlim([min(x*1e3),max(x*1e3)])
