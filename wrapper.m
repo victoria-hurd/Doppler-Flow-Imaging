@@ -17,8 +17,10 @@ OS = ispc;
 %% Data Read
 if OS == 0
     load("./data/flow_data.mat")
+    path = "./movieOutputs/";
 elseif OS == 1
     load(".\data\flow_data.mat")
+    path = ".\movieOutputs\";
 end
 
 %% High Quality vs Low Quality 
@@ -114,8 +116,35 @@ thetaCorrect = theta+angles;
 
 %% Angle Correction 
 % Compare averaged velocity at specific points over time
-avgV = mean(colorDoppler(500,250,:,:),3);
-colorDoppler = colorDoppler./cosd(thetaCorrect);
+for i = 1:length(angles)
+    angle = num2str(angles(i));
+    colorDoppler(:,:,:,i) = colorDoppler(:,:,:,i)./cosd(thetaCorrect(i));
+% Doppler Flow Movie
+    % Define number of frames for animation
+    loops = size(colorDoppler(:,:,:,i),3); % Get number of timestamps within rf
+    % Create video object
+    str = strcat(path,"ColorDopplerCorrected_",angle,"deg");
+    v = VideoWriter(str,'MPEG-4');
+    % Open object
+    open(v)
+    % Create movie
+    figure
+    for j = 1:loops
+        clf
+        imagesc(colorDoppler(:,:,j,i)*1e2)
+        colormap(cmap_cf)
+        title("Doppler Flow")
+        xlabel("X Position [m]")
+        ylabel("Z Position [m]")
+        cb = colorbar(); 
+        ylabel(cb,'Flow Velocity [cm/s]','FontSize',14)
+        drawnow
+        frame = getframe(gcf);
+       writeVideo(v,frame)
+    end
+    % close object
+    close(v)
+end
 
 %% Power/Color Overlay
 % Obtain benefits of both the color and power Doppler in one image
