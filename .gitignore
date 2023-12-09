@@ -1,3 +1,4 @@
 
 core.asv
 *.asv
+.DS_Store
