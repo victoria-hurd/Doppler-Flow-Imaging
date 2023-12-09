@@ -105,6 +105,7 @@ v = VideoWriter("bModeMovie",'MPEG-4');
 % Open object
 open(v)
 % Create movie
+figure
 for i = 1:loops
     env_i = env(:,:,i);
     clf
@@ -252,6 +253,7 @@ v = VideoWriter("WallFilter",'MPEG-4');
 % Open object
 open(v)
 % Create movie
+figure
 for i = 1:loops
     clf
     imagesc(wallBMode(:,:,i))
@@ -306,6 +308,7 @@ v = VideoWriter("colorDoppler",'MPEG-4');
 % Open object
 open(v)
 % Create movie
+figure
 for i = 1:loops
     clf
     imagesc(vD(:,:,i)*1e2)
@@ -334,5 +337,3 @@ xlabel("X Position [mm]")
 ylabel("Z Position [mm]")
 title('Power Doppler')
 colorbar
-% ylim([min(z*1e3),max(z*1e3)])
-% xlim([min(x*1e3),max(x*1e3)])
