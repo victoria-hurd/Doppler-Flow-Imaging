@@ -110,32 +110,13 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     % Prep FFT
     % https://www.mathworks.com/help/matlab/ref/fft.html
     Fs = prf; 
-    T = 1/Fs;
     [M, ~, ~, ~] = size(mat);
     L = M; % number of rows - represents signal length
-    t = (0:L-1)*T; % time vector
     f = Fs/L*(0:(L/2)); % one-sided frequency vector
     
     % FFT in Doppler Freq
     ffty = abs(fft(mat));
-    
-    % Find cutoffs from time data
-    % Lateral averaging - lateral is dimension 3
-    mat_lateralavg = mean(ffty,3);
-    % Average axially  
-    mat_axialavg = mean(mat_lateralavg,2);
-    % Plot
-    figure
-    hold on
-    grid minor
-    plot(f,mat_axialavg(1:L/2+1))
-    xlim([min(f) max(f)])
-    xline(720)
-    title('Single-Sided Frequency Spectrum')
-    xlabel('Doppler Frequency (Hz)')
-    ylabel('|FFT|')
-    hold off
-    
+
     % Design filter
     % Define Nyquist 
     Fn = Fs/2;
@@ -167,10 +148,12 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     % Permute again to make time dimension 3 again
     matFinal = permute(matFiltered,[3 2 1]); % lateral, axial, time
     
-    % Displaying filtered B mode
-    wallBMode = abs(matFinal);
+    % Remove first and last frames since they're dark
+    matFinal(:,:,1) = [];
+    matFinal(:,:,end) = [];
     
     % Wall filter movie
+    wallBMode = abs(matFinal);
     % Define number of frames for animation
     loops = size(wallBMode,3); % Get number of timestamps within rf
     % Create video object
@@ -209,7 +192,6 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     % Calculate number of frames
     nFrames = size(I,3);
     for i = 2:nFrames
-        % ISSUE - these outputs are zero...
         num(:,:,i-1) = Q(:,:,i).*I(:,:,i-1)-I(:,:,i).*Q(:,:,i-1); 
         denom(:,:,i-1) = I(:,:,i).*I(:,:,i-1)+Q(:,:,i).*Q(:,:,i-1); 
     end
@@ -223,7 +205,7 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     
     % Plotting single frame
     figure
-    imagesc(vD(:,:,1))
+    imagesc(imgaussfilt(vD(:,:,25),2))
     colormap(cmap_cf)
     cb = colorbar(); 
     ylabel(cb,'Flow Velocity [cm/s]','FontSize',14)
@@ -253,6 +235,57 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     end
     % close object
     close(v)
+
+%     % Loupas'Calculations part 1 - arctan argument
+%     % Preallocations
+%     Lnum = zeros(size(I,1),size(I,2),size(I,3)-1);
+%     Ldenom = zeros(size(I,1),size(I,2),size(I,3)-1);
+%     % Calculate number of frames
+%     nFrames = size(I,3);
+%     for i = 2:nFrames
+%         Lnum(:,:,i-1) = Q(:,:,i).*I(:,:,i-1)-I(:,:,i).*Q(:,:,i-1); 
+%         Ldenom(:,:,i-1) = I(:,:,i).*I(:,:,i-1)+Q(:,:,i).*Q(:,:,i-1); 
+%     end
+%     % Kernel convolution
+%     Lkernel = ones(5,1,3);
+%     LnumConv = convn(num,Lkernel,'same');
+%     LdenomConv = convn(denom,Lkernel,'same');
+%     
+%     %  Kasai's Calculations part 2
+%     LvD = (1*c*prf/(4*pi*f0))*atan2(LnumConv,LdenomConv);
+%     
+%     % Plotting single frame
+%     figure
+%     imagesc(imgaussfilt(vD(:,:,25),2))
+%     colormap(cmap_cf)
+%     cb = colorbar(); 
+%     ylabel(cb,'Flow Velocity [cm/s]','FontSize',14)
+% 
+%     % Doppler Flow Movie
+%     % Define number of frames for animation
+%     loops = size(LvD,3); % Get number of timestamps within rf
+%     % Create video object
+%     str = strcat(path,"LoupasColorDoppler_",angle,"deg");
+%     v = VideoWriter(str,'MPEG-4');
+%     % Open object
+%     open(v)
+%     % Create movie
+%     figure
+%     for i = 1:loops
+%         clf
+%         imagesc(LvD(:,:,i)*1e2)
+%         colormap(cmap_cf)
+%         title("Doppler Flow")
+%         xlabel("X Position [m]")
+%         ylabel("Z Position [m]")
+%         cb = colorbar(); 
+%         ylabel(cb,'Flow Velocity [cm/s]','FontSize',14)
+%         drawnow
+%         frame = getframe(gcf);
+%        writeVideo(v,frame)
+%     end
+%     % close object
+%     close(v)
     
     %% Power Doppler
     power = sum(abs(matFinal).^2,3);
@@ -265,6 +298,4 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     xlabel("X Position [mm]")
     ylabel("Z Position [mm]")
     title('Power Doppler')
-    colorbar
 end
-
