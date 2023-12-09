@@ -94,18 +94,19 @@ hold off
 %% B-Mode Movie
 % Perform envelope detection to convert RF data to pressure field
 % Hilbert's Transform - absolute value of complex hilbert's gives envelope
-env = abs(hilbert(rf));
+angleInd = 3;
+env = abs(hilbert(rf(:,:,:,angleInd)));
+% Normalize frames
+env = 20*log10(env/max(env(:)));
 % Define number of frames for animation
 loops = size(rf,3); % Get number of timestamps within rf
-angleInd = 3;
 % Create video object
 v = VideoWriter("newfile",'MPEG-4');
 % Open object
 open(v)
 % Create movie
 for i = 1:loops
-    env_i = env(:,:,i,angleInd);
-    env_i = 20*log10(env_i/max(env_i(:)));
+    env_i = env(:,:,i);
     clf
     imagesc(env_i)
     colormap(gray)
@@ -113,6 +114,7 @@ for i = 1:loops
     xlabel("X Position [m]")
     ylabel("Z Position [m]")
     colorbar
+    %clim([0 60]) Idk how to get them to all be the same range?
     drawnow
     frame = getframe(gcf);
    writeVideo(v,frame)
@@ -211,7 +213,7 @@ hold off
 % Define Nyquist 
 Fn = Fs/2;
 % https://www.mathworks.com/matlabcentral/answers/412443-butterworth-filtfilt-and-fft-ifft-problem
-flc = 200/Fn;
+flc = 300/Fn;
 n = 4;
 [b,a] = butter(n,flc,'high');
 
@@ -240,9 +242,29 @@ matFinal = permute(matFiltered,[3 2 1]); % lateral, axial, time
 
 % Displaying filtered B mode
 wallBMode = abs(matFinal);
-figure
-imagesc(wallBMode(:,:,25))
 
+% Wall filter movie
+% Define number of frames for animation
+loops = size(wallBMode,3); % Get number of timestamps within rf
+% Create video object
+v = VideoWriter("newfile",'MPEG-4');
+% Open object
+open(v)
+% Create movie
+for i = 1:loops
+    clf
+    imagesc(wallBMode(:,:,i))
+    colormap(gray)
+    title("Flow over Time")
+    xlabel("X Position [m]")
+    ylabel("Z Position [m]")
+    colorbar
+    drawnow
+    frame = getframe(gcf);
+   writeVideo(v,frame)
+end
+% close object
+close(v)
 
 %% Color Flow Doppler
 M = 5;
@@ -264,8 +286,6 @@ figure
 imagesc(Vd(:,:)*1e2)
 colormap(cmap_cf)
 c = colorbar;
-c.Label.String = 'Flow Velocity (cm/s)';
-
 
 %% Color Flow Vicki's first attempt
 I = real(matFinal);
@@ -286,7 +306,27 @@ end
 
 % This gives a single vector? In project doc it gives scalar. What should
 % dimensions really be here? 800*300*50? Show flow over time?
-v = (-c*prf/(4*pi*f0))*atan2(num,denom);
+v = (c*prf/(4*pi*f0))*atan2(num,denom);
+
+%% Color Flow Vicki's second attempt
+% separate in phase and quadrature
+I = real(matFinal);
+Q = imag(matFinal);
+
+% Kasai's Calculations part 1 - arctan argument
+% ISSUE - these outputs are zero...
+nFrames = size(I,3);
+for i = 1:nFrames-1
+    num = Q(:,:,i).*I(:,:,i-1)-I(:,:,i).*Q(:,:,i-1); 
+    denom = I(:,:,i).*I(:,:,i-1)+Q(:,:,i).*Q(:,:,i-1); 
+end
+% Kernel convolution
+kernel = ones(5,1,3);
+numConv = convn(num,kernel,'same');
+denomConv = convn(denom,kernel,'same');
+
+%  Kasai's Calculations part 2
+v = (1*c*prf/(4*pi*f0))*atan2(numConv,denomConv);
 
 %% Power Doppler
 s_bb = 1;
