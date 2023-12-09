@@ -97,8 +97,8 @@ hold off
 
 %% Function Call
 % Preallocate space for color Doppler and power Doppler (primary outputs)
-colorDoppler = ones(1,1,1,length(angles));
-powerDoppler = ones(1,1,length(angles));
+colorDoppler = ones(800,300,49,length(angles));
+powerDoppler = ones(800,300,length(angles));
 % Function call outputs 
 for i = 1:length(angles)
     [colorDoppler(:,:,:,i),powerDoppler(:,:,i)] = ...
@@ -106,5 +106,14 @@ for i = 1:length(angles)
 end
 
 %% Angle Estimations
+% Estimate the angle of the vessel relative to the wave propagation 
+% direction, considering the difference between the vessel angle and the 
+% beam angle
+
+
+%% Angle Correction
+% Perform angle correction for your velocity estimates. 
 
 %% Power/Color Overlay
+% Obtain benefits of both the color and power Doppler in one image
+

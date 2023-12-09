@@ -31,6 +31,7 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     open(v)
     % Create movie
     figure
+    pause(0.01)
     for i = 1:loops
         env_i = env(:,:,i);
         clf
@@ -179,6 +180,7 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     open(v)
     % Create movie
     figure
+    pause(0.01)
     for i = 1:loops
         clf
         imagesc(wallBMode(:,:,i))
@@ -225,11 +227,7 @@ function [vD,power] = core(rf,f0,x,z,c,prf,cmap_cf,cmap_pd,angles,idx,OS)
     colormap(cmap_cf)
     cb = colorbar(); 
     ylabel(cb,'Flow Velocity [cm/s]','FontSize',14)
-    drawnow
-    frame = getframe(gcf);
-   writeVideo(v,frame)
-    % close object
-    close(v)
+
     % Doppler Flow Movie
     % Define number of frames for animation
     loops = size(vD,3); % Get number of timestamps within rf
