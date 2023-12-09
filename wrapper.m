@@ -97,7 +97,7 @@ hold off
 
 %% Function Call
 % Preallocate space for color Doppler and power Doppler (primary outputs)
-colorDoppler = ones(800,300,49,length(angles));
+colorDoppler = ones(800,300,47,length(angles));
 powerDoppler = ones(800,300,length(angles));
 % Function call outputs 
 for i = 1:length(angles)
@@ -109,10 +109,13 @@ end
 % Estimate the angle of the vessel relative to the wave propagation 
 % direction, considering the difference between the vessel angle and the 
 % beam angle
+theta = acosd(dot(colorDoppler(500,250,:,1),colorDoppler(500,250,:,3)));
+thetaCorrect = theta+angles;
 
-
-%% Angle Correction
-% Perform angle correction for your velocity estimates. 
+%% Angle Correction 
+% Compare averaged velocity at specific points over time
+avgV = mean(colorDoppler(500,250,:,:),3);
+colorDoppler = colorDoppler./cosd(thetaCorrect);
 
 %% Power/Color Overlay
 % Obtain benefits of both the color and power Doppler in one image
