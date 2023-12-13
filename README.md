@@ -4,7 +4,9 @@ This work transforms rudimentary radio frequency (RF) data into basic color Dopp
 This code operates via running a wrapper script (wrapper.m) to pull in RF data and repeatedly run through core calculations (core.m). This program performs basic B-Mode visualization and animation, RF signal demodulation, signal baseband shifting, wall filter application, phase-based velocity estimation (via Kasai's), power Doppler flow magnitude estimation, and color Doppler angle corrections. 
 
 # Input Data
+
 flow_data.mat:
+
 rf bmode: RF data corresponding to pixels in the high quality 2-D image (axial x lateral)
 rf:  RF data corresponding to pixels in the low quality 2-D image through time (axial x lateral x time x angle) x Lateral coordinates in meters
 z: Axial coordinates in meters
