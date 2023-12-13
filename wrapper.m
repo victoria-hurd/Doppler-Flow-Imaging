@@ -11,19 +11,19 @@
 % (Created on Mac M1 ARM chip)
 
 %% Housekeeping
-clear;clc;close all
-OS = ispc;
+%clear;clc;close all
+%OS = ispc;
 
 %% Data Read
-if OS == 0
-    load("./data/flow_data.mat")
-    load("./data/mask.mat")
-    path = "./movieOutputs/";
-elseif OS == 1
-    load(".\data\flow_data.mat")
-    load(".\data\mask.mat")
-    path = ".\movieOutputs\";
-end
+% if OS == 0
+%     load("./data/flow_data.mat")
+%     load("./data/mask.mat")
+%     path = "./movieOutputs/";
+% elseif OS == 1
+%     load(".\data\flow_data.mat")
+%     load(".\data\mask.mat")
+path = ".\movieOutputs\";
+% end
 
 %% High Quality vs Low Quality 
 % Displaying B-Mode Images
@@ -184,5 +184,28 @@ ylabel(cb2,'Flow Velocity [cm/s]')
 title('Color and Power Doppler Overlay')
 xlabel("X Position [m]")
 ylabel("Z Position [m]")
+%% ROIPOly
+% %flow towards, 0 degrees% 
+% %flow towards, 0 degrees% 
+a = [115 115 170 170];
+b = [545 615 652 573];
+BW = roipoly(colorDoppler(:,:,25,2)*1e2,a,b);
+figure
+imagesc(BW)
+title ('Flow area towards')
+toward_area = colorDoppler(:,:,25,2).*BW; % Corrected indexing
+pos_avg = mean(toward_area(:)); % Use linear indexing and convert to a column vector
 
+disp(['Average velocity 1: ' num2str(pos_avg) 'm/s']);
+%flow away
+c = [130 280 275];
+r = [470 475 575];
+BW = roipoly(colorDoppler(:,:,25,2)*1e2,c,r);
+figure
+imagesc(BW)
+title ('Flow area away')
 
+away_area = colorDoppler(:,:,25,2).*BW; % Corrected indexing
+neg_avg = mean(away_area(:)); % Use linear indexing and convert to a column vector
+
+disp(['Average velocity 2: ' num2str(neg_avg) 'm/s']);
