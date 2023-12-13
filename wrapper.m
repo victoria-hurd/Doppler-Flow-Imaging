@@ -1,6 +1,6 @@
 % AUTHOR: Victoria Hurd
 % DATE CREATED: 12/8/2023
-% DATE LAST MODIFIED: 12/9/2023
+% DATE LAST MODIFIED: 12/12/2023
 % PROJECT: MCEN 5127 Final Project
 % DESCRIPTION: Wrapper function to perform calculation for all beam angles.
 % Performs velocity estimation angle corrections. Overlays power and color
@@ -17,9 +17,11 @@ OS = ispc;
 %% Data Read
 if OS == 0
     load("./data/flow_data.mat")
+    load("./data/mask.mat")
     path = "./movieOutputs/";
 elseif OS == 1
     load(".\data\flow_data.mat")
+    load(".\data\mask.mat")
     path = ".\movieOutputs\";
 end
 
@@ -138,6 +140,7 @@ for i = 1:length(angles)
         ylabel("Z Position [m]")
         cb = colorbar(); 
         ylabel(cb,'Flow Velocity [cm/s]','FontSize',14)
+        clim([-40 40])
         drawnow
         frame = getframe(gcf);
        writeVideo(v,frame)
@@ -147,5 +150,39 @@ for i = 1:length(angles)
 end
 
 %% Power/Color Overlay
-% Obtain benefits of both the color and power Doppler in one image
+% Credit to Subhadeep Koley:
+% https://www.mathworks.com/matlabcentral/answers/476715-superimposing-two-imagesc-graphs-over-each-other
+%plot first data 
+figure
+ax1 = axes; 
+im = imagesc(powerDoppler(:,:,2)); 
+im.AlphaData = 0.5; % change this value to change the background image transparency 
+axis square; 
+hold all; 
+%plot second data 
+ax2 = axes; 
+im1 = imagesc(mask.*colorDoppler(:,:,25,2)*1e2); 
+im1.AlphaData = 0.5; % change this value to change the foreground image transparency 
+axis square; 
+title('Color and Power Doppler Overlay')
+xlabel("X Position [m]")
+ylabel("Z Position [m]")
+%link axes 
+linkaxes([ax1,ax2]) 
+% Hide the top axes 
+ax2.Visible = 'off'; 
+% ax2.XTick = []; 
+% ax2.YTick = []; 
+% add differenct colormap to different data if you wish 
+colormap(ax1,cmap_pd) 
+colormap(ax2,cmap_cf) 
+%set the axes and colorbar position 
+set([ax1,ax2],'Position',[.17 .11 .685 .815]); 
+cb1 = colorbar(ax1,'Position',[.05 .11 .0675 .815]); 
+cb2 = colorbar(ax2,'Position',[.88 .11 .0675 .815]);
+ylabel(cb2,'Flow Velocity [cm/s]')
+title('Color and Power Doppler Overlay')
+xlabel("X Position [m]")
+ylabel("Z Position [m]")
+
 
