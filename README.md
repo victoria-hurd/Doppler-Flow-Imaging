@@ -3,7 +3,7 @@ This work transforms rudimentary radio frequency (RF) data into basic color Dopp
 
 This code operates via running a wrapper script (wrapper.m) to pull in RF data and repeatedly run through core calculations (core.m). This program performs basic B-Mode visualization and animation, RF signal demodulation, signal baseband shifting, wall filter application, phase-based velocity estimation (via Kasai's), power Doppler flow magnitude estimation, and color Doppler angle corrections. 
 
-# Input Data
+## Input Data
 
 flow_data.mat:
 
@@ -18,9 +18,10 @@ cmap_cf: Colormap to be used with color flow Doppler
 cmap_pd: Colormap to be used with color power Doppler
 
 mask_data.mat:
+
 Logical-type polygon mask to create the power/color Doppler overlay
 
-# Output Data
+## Output Data
 Outputs include basic B-Mode, wall filtered B-Mode, color Doppler, and velocity-corrected color Doppler animations for each of the three steering angles. These outputs are placed into a movieOutputs folder. 
 
 Thanks to Prof. Nick Bottenus for putting this project together!
